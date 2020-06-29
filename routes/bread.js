@@ -1,13 +1,16 @@
 var express = require('express');
 var router = express.Router();
 var moment = require('moment');
+const objectId = require('mongodb').ObjectId;
+
+
 
 
 /* GET users listing. */
 module.exports = (db) => {
 
   //Show DATA
-  let coll = 'bread'
+  const coll = 'bread'
   router.get('/', function (req, res, next) {
 
     let query = {};
@@ -46,10 +49,22 @@ module.exports = (db) => {
 
 
     db.collection(coll).find(query).count()
+      .catch((err) => {
+        res.status(500).json({
+          error: true,
+          mesagge: err
+        })
+      })
       .then((total) => {
         const pages = Math.ceil(total / limit)
 
         db.collection(coll).find(query).limit(limit).skip(offset).toArray()
+          .catch((err) => {
+            res.status(500).json({
+              error: true,
+              mesagge: err
+            })
+          })
           .then((result) => {
             res.status(200).json({
               moment,
@@ -58,25 +73,49 @@ module.exports = (db) => {
               page
             })
           })
-          .catch((err) => {
-            res.status(500).json({
-              error: true,
-              mesagge: err
-            })
-          })
-
       })
+  });
+
+  //ADD DATA
+  router.post('/', (req, res) => {
+    const add = {
+      'string': req.body.string,
+      'integer': parseInt(req.body.integer),
+      'float': parseFloat(req.body.float),
+      'date': req.body.date,
+      'boolean': JSON.parse(req.body.boolean)
+    }
+    db.collection(coll).insertOne(add)
       .catch((err) => {
         res.status(500).json({
           error: true,
           mesagge: err
         })
       })
+      .then(() => res.status(200).json({
+        error: false,
+        mesagge: 'add complete'
+      }))
+  })
+
+  //delete data
+  router.delete('/:id', (req, res) => {
+    const id = req.params.id;
+    console.log(id)
+    db.collection(coll).deleteOne({})
+      .then(() => {
+        res.status(201).json({
+          error: false,
+          message: 'data berhasil dihapus'
+        })
+      })
+      .catch((err) => {
+        res.status(500).json({
+          error: true,
+          message: err
+        })
+      })
   });
-
-  //ADD DATA
-
-
 
 
 
