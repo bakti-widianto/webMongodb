@@ -40,23 +40,6 @@
           <br>
 
           <form action="/" method="GET" id="searchForm">
-            <input type="hidden" id="page" name="page" value="1">
-            <div class="row">
-              <div class="col">
-                <div class="custom-control custom-checkbox mb-3">
-                  <input class="custom-control-input" type="checkbox" id="id" name="checkId">
-                  <label class="custom-control-label" for="id">
-                    ID
-                  </label>
-                </div>
-              </div>
-              <div class="col-10">
-                <div class="form-group">
-                    <input type="text" class="form-control" id="id" placeholder="ID" name="id">
-                </div>
-              </div>
-            </div>
-
             <div class="row">
               <div class="col">
                 <div class="custom-control custom-checkbox mb-3">
@@ -159,7 +142,7 @@
             <table class="table table-striped">
               <thead>
                 <tr>
-                  <th>ID</th>
+                  <th>No</th>
                   <th>String</th>
                   <th>Integer</th>
                   <th>Float</th>
@@ -269,12 +252,6 @@
 
           <form action="" method="post" id="form-add">
             <div class="form-group row">
-              <label for="id" class="col-sm-2 col-form-label">ID</label>
-              <div class="col-sm-10">
-                <input type="text" class="form-control" id="editId" readonly>
-              </div>
-            </div>
-            <div class="form-group row">
               <label for="string" class="col-sm-2 col-form-label">String</label>
               <div class="col-sm-10">
                 <input type="text" class="form-control" id="editString" placeholder="String">
@@ -320,3 +297,221 @@
       </div>
     </div>
   </div>
+
+
+  <!-- CODINGAN JAVASCRIPT -->
+  <script type="text/javascript">
+
+    //LISTENER
+    $(document).ready(() => {
+      loadData();
+
+      $("#searchForm").submit((e) => {
+        e.preventDefault();
+        $('#page').val(1);
+        loadData();
+      })
+
+      $('nav').on('click', 'li', function (e) {
+        e.preventDefault();
+        $('#page').val($(this).attr('pageid'));
+        loadData();
+      })
+
+      $('.btn-add').on('click', '.btn-save', function (e) {
+        e.preventDefault()
+        let string = $('#addString').val();
+        let integer = $('#addInteger').val();
+        let float = $('#addFloat').val();
+        let date = $('#addDate').val();
+        let boolean = $('#addBoolean').val();
+        if (string == 0 || integer == 0 || float == 0 || date == 0 || boolean == 0) {
+          alert('data tidak valid, mohon lengkapi semua data !')
+        } else {
+          addData(string, integer, float, date, boolean);
+          alert('data di tambahkan !')
+        }
+      })
+
+      $("table tbody").on("click", ".btn-delete", function (e) {
+        if (confirm(`Apa Anda Yakin Akan Menghapus Data?`)) {
+          let id = $(this).attr('dataid')
+          deleteData(id);
+        }
+      });
+
+      $("table tbody").on("click", ".btn-edit", function (e) {
+        let id = $(this).attr('dataid')
+        editData(id);
+      })
+
+      $(".btn-edit").on("click", ".btn-change", function (e) {
+        let id = $('#editId').val();
+        let string = $('#editString').val();
+        let integer = $('#editInteger').val();
+        let float = $('#editFloat').val();
+        let date = $('#editDate').val();
+        let boolean = $('#editBoolean').val();
+        updateData(id, string, integer, float, date, boolean)
+        alert('data berhasil di ubah !')
+      })
+
+    })
+
+
+
+    // JQUERY AJAX
+
+    //HOME
+    const loadData = () => {
+
+      //data from form search
+      let dataSearch = $('#searchForm').serializeArray();
+      var filter = {};
+      // console.log(dataSearch)
+
+      $.map(dataSearch, function (n, i) {
+        filter[n['name']] = n['value'];
+      });
+      // console.log(filter)
+
+      $.ajax({
+        method: "GET",
+        url: "http://localhost:3000/bread/",
+        data: filter,
+        dataType: 'json'
+      })
+        .done(function (result) {
+          const data = result.data
+          // console.log(data)
+          let pages = parseInt(result.pages)
+          let page = parseInt(result.page)
+          let pagination = '';
+          let html = '';
+
+          data.forEach((item, index) => {
+            html += `<tr>
+              <td>${index + 1}</td>
+              <td>${item.string}</td>
+              <td>${item.integer}</td>
+              <td>${item.float}</td>
+              <td>${item.date}</td>
+              <td>${item.boolean}</td>
+              <td>
+                <button class="btn btn-success btn-edit" type="button" dataid="${item._id}" data-toggle="modal" data-target="#editModal">EDIT</button>
+                <button class="btn btn-danger btn-delete" type="button" dataid="${item._id}">DELETE</button>
+                </td>
+              </tr>`
+          })
+          if (page == 1) {
+            pagination += `<li class="page-item prevoius disabled" pageid= "${page - 1}"><a class="page-link" href="#">Previous</a></li>\n`
+          } else {
+            pagination += `<li class="page-item previous" pageid=${page - 1}><a class="page-link" href="#">Previous</a></li>\n`;
+          }
+          for (i = 1; i <= pages; i++) {
+            if (i == page) {
+              pagination += `<li class="page-item active" pageid="${i}"><a class="page-link" href="#">${i}</a></li>\n`;
+            } else {
+              pagination += `<li class="page-item" pageid="${i}"><a class="page-link" href="#">${i}</a></li>\n`;
+            }
+          }
+          if (page == parseInt(pages)) {
+            pagination += `<li class="page-item next disabled" pageid="${page + 1}"><a class="page-link" href="#">Next</a></li>\n`;
+          } else {
+            pagination += `<li class="page-item next" pageid=${page + 1}><a class="page-link" href="#">Next</a></li>\n`;
+          }
+
+          $(`table tbody`).html(html);
+          $('nav ul').html(pagination);
+        })
+        .fail(function (err) {
+          console.log('gagal total')
+        })
+    }
+
+    //=====>ADD<=====
+    const addData = (string, integer, float, date, boolean) => {
+      $.ajax({
+        method: "POST",
+        url: "http://localhost:3000/bread/",
+        data: { string, integer, float, date, boolean },
+        dataType: 'json'
+      })
+        .done(function (data) {
+          loadData();
+        })
+        .fail(function (err) {
+          console.log('add gagal')
+        })
+      $('#form-add').trigger('reset');
+    }
+
+
+
+    //=====>DELETE<=====
+    const deleteData = (id) => {
+      $.ajax({
+        method: "DELETE",
+        url: "http://localhost:3000/bread/" + id,
+        dataType: 'json'
+      })
+        .done(function (data) {
+          loadData();
+        })
+        .fail(function (err) {
+          console.log('delete gagal')
+        })
+    }
+
+
+    //=====>EDIT(GET)<=====
+    const editData = (id) => {
+      $.ajax({
+        method: "GET",
+        url: "http://localhost:3000/bread/" + id,
+        dataType: 'json'
+      })
+        .done(hasil => {
+
+          let html = ''
+          let item = hasil.data;
+
+          $('#editId').val(item._id);
+          $('#editString').val(item.string);
+          $('#editInteger').val(item.integer);
+          $('#editFloat').val(item.float);
+          $('#editDate').val(item.date)
+          if (item.boolean == true) {
+            html += `<option value="true" selected>true</option>
+                     <option value="false">false</option>`
+          } else {
+            html += `<option value="false" selected>false</option>
+                <option value="true">true</option>`;
+          };
+          $('#editBoolean').html(html);
+        })
+        .fail(function (err) {
+          console.log('ambil data gagal')
+        })
+    }
+
+    //=====>EDIT(PUT)<=====
+    const updateData = (id, string, integer, float, date, boolean) => {
+      $.ajax({
+        method: "PUT",
+        url: "http://localhost:3000/bread/" + id,
+        data: { string, integer, float, date, boolean },
+        dataType: 'json'
+      })
+        .done(function (data) {
+          loadData();
+        })
+        .fail(function (err) {
+          console.log('add gagal')
+        })
+    }
+
+  </script>
+</body>
+
+</html>

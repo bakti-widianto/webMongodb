@@ -44,7 +44,7 @@ module.exports = (db) => {
 
     // console.log('INI REQ DATA =====>', query)
 
-    const limit = 10;
+    const limit = 4;
     const offset = (page - 1) * limit;
 
 
@@ -65,10 +65,12 @@ module.exports = (db) => {
               mesagge: err
             })
           })
-          .then((result) => {
+          .then((data) => {
+            for (let i = 0; i < data.length; i++) {
+              data[i].date = moment(data[i].date).format('YYYY-MM-DD')
+            }
             res.status(200).json({
-              moment,
-              result,
+              data,
               pages,
               page
             })
@@ -123,6 +125,7 @@ module.exports = (db) => {
 
     db.collection(coll).findOne({ _id: objectId(id) })
       .then((data) => {
+        data.date = moment(data.date).format('YYYY-MM-DD')
         res.status(201).json({
           error: false,
           data: data
