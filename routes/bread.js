@@ -3,7 +3,7 @@ var router = express.Router();
 var moment = require('moment');
 const objectId = require('mongodb').ObjectId;
 
-
+// console.log(objectId)
 
 
 /* GET users listing. */
@@ -101,12 +101,12 @@ module.exports = (db) => {
   //delete data
   router.delete('/:id', (req, res) => {
     const id = req.params.id;
-    console.log(id)
-    db.collection(coll).deleteOne({})
+
+    db.collection(coll).deleteOne({ _id: objectId(id) })
       .then(() => {
         res.status(201).json({
           error: false,
-          message: 'data berhasil dihapus'
+          message: `data ${objectId(id)} berhasil dihapus `
         })
       })
       .catch((err) => {
@@ -117,8 +117,53 @@ module.exports = (db) => {
       })
   });
 
+  //show data edit
+  router.get('/:id', (req, res) => {
+    const id = req.params.id;
 
+    db.collection(coll).findOne({ _id: objectId(id) })
+      .then((data) => {
+        res.status(201).json({
+          error: false,
+          data: data
+        })
+      })
+      .catch((err) => {
+        res.status(500).json({
+          error: true,
+          message: err
+        })
+      })
+  });
 
+  //edit data
+  router.put('/:id', (req, res) => {
+    const id = req.params.id;
+
+    db.collection(coll).updateOne(
+      { _id: objectId(id) },
+      {
+        $set: {
+          string: req.body.string,
+          integer: parseInt(req.body.integer),
+          float: parseFloat(req.body.float),
+          date: req.body.date,
+          boolean: JSON.parse(req.body.boolean)
+        }
+      })
+      .then(() => {
+        res.status(201).json({
+          error: false,
+          message: 'update complete'
+        })
+      })
+      .catch((err) => {
+        res.status(500).json({
+          error: true,
+          message: err
+        })
+      })
+  });
 
 
   return router;
